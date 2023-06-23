@@ -105,24 +105,23 @@ def getcountrycode():
     if the device is connected to the Internet. Otherwise it returns
     an empty string.
     """
-    if libcalamares.globalstorage.value("hasInternet"):
-        geoipurl = libcalamares.job.configuration["geoip"]["url"]
-        try:
-            with urllib.request.urlopen(geoipurl, timeout=75) as http_response:
-                localedata = json.loads(http_response.read().decode())
-        except HTTPError as http_error:
-            logging.error("Data not retrieved because %s - URL: %s",
-                          http_error, geoipurl)
-        except URLError as url_error:
-            if isinstance(url_error.reason, socket.timeout):
-                logging.error("Socket timed out - URL %s", geoipurl)
-            else:
-                logging.error("Non-timeout protocol error.")
-        else:
-            logging.info("Country successfully determined.")
-            return localedata["country"]
-    else:
+    if not libcalamares.globalstorage.value("hasInternet"):
         return ""
+    geoipurl = libcalamares.job.configuration["geoip"]["url"]
+    try:
+        with urllib.request.urlopen(geoipurl, timeout=75) as http_response:
+            localedata = json.loads(http_response.read().decode())
+    except HTTPError as http_error:
+        logging.error("Data not retrieved because %s - URL: %s",
+                      http_error, geoipurl)
+    except URLError as url_error:
+        if isinstance(url_error.reason, socket.timeout):
+            logging.error("Socket timed out - URL %s", geoipurl)
+        else:
+            logging.error("Non-timeout protocol error.")
+    else:
+        logging.info("Country successfully determined.")
+        return localedata["country"]
 
 
 def get_subdomain_by_country(countrycode):
@@ -143,8 +142,7 @@ def getcodename():
 def changesources(subdomain):
     """Replace the placeholders and then create the sources.list"""
     distro = libcalamares.job.configuration["distribution"]
-    url = "http://{}{}".format(subdomain,
-                               libcalamares.job.configuration["baseUrl"])
+    url = f'http://{subdomain}{libcalamares.job.configuration["baseUrl"]}'
 
     global sources
     sources = sources.replace("DISTRIBUTION", distro)
